@@ -29,26 +29,26 @@ out.
 In Verilog:
 
 ```verilog
-localparam S_GREEN  = 2'b00;      // give each state a name
-localparam S_YELLOW = 2'b01;
-localparam S_RED    = 2'b10;
+localparam GREEN  = 2'b00;      // give each state a name
+localparam YELLOW = 2'b01;
+localparam RED    = 2'b10;
 
-reg [1:0] state;                  // the register that remembers the current state
+reg [1:0] current_light;                  // the register that remembers the current state
 
 always @(posedge clk) begin
     if (!rst_n) begin
-        state <= S_RED;           // reset always lands in a known state
+        current_light <= RED;           // reset always lands in a known state
     end else begin
-        case (state)
-            S_GREEN:  if (something) state <= S_YELLOW;
-            S_YELLOW: if (something) state <= S_RED;
-            S_RED:    if (something) state <= S_GREEN;
-            default:                 state <= S_RED;
+        case (current_light)
+            GREEN:  if (something) current_light <= YELLOW;
+            YELLOW: if (something) current_light <= RED;
+            RED:    if (something) current_light <= GREEN;
+            default:                 current_light <= RED;
         endcase
     end
 end
 
-assign uo_out[2] = (state == S_GREEN);   // outputs come FROM the state
+assign uo_out[2] = (current_light == GREEN);   // outputs come FROM the state
 ```
 
 Look at the last line. **The outputs come from the state; they aren't stored separately.**
@@ -61,19 +61,19 @@ A traffic light doesn't change because something happened. It changes after a ce
 amount of time. So you need a counter running next to the state:
 
 ```verilog
-reg [4:0] timer;
+reg [4:0] ticks_in_light;
 ```
 
 The pattern: on every tick, either the timer goes up by one, or you change state and set
 the timer back to zero.
 
 ```verilog
-S_YELLOW: begin
-    if (timer == YELLOW_TIME - 1) begin
-        state <= S_RED;
-        timer <= 5'd0;          // reset the timer on the way out
+YELLOW: begin
+    if (ticks_in_light == YELLOW_TICKS - 1) begin
+        current_light <= RED;
+        ticks_in_light <= 5'd0;          // reset the timer on the way out
     end else begin
-        timer <= timer + 5'd1;
+        ticks_in_light <= ticks_in_light + 5'd1;
     end
 end
 ```
@@ -81,8 +81,8 @@ end
 **Every path that changes state has to clear the timer too.** If you miss one, the light
 behaves for one cycle and then goes haywire. This is the most common bug in the project.
 
-Why `YELLOW_TIME - 1`? Because the timer starts at 0. Counting 0, 1, 2, 3 is four ticks.
-If you compare against `YELLOW_TIME` itself, you get five. Off-by-one mistakes here are
+Why `YELLOW_TICKS - 1`? Because the timer starts at 0. Counting 0, 1, 2, 3 is four ticks.
+If you compare against `YELLOW_TICKS` itself, you get five. Off-by-one mistakes here are
 normal, and the waveform shows them right away.
 
 ## Remembering something that only lasts an instant
@@ -96,8 +96,8 @@ first tick of green.
 So this doesn't work:
 
 ```verilog
-S_GREEN: begin
-    if (ped_button) ...      // WRONG
+GREEN: begin
+    if (button_pressed) ...      // WRONG
 end
 ```
 
@@ -107,15 +107,15 @@ catches a press if it happens on the exact tick you're checking.
 You have to **remember** the press:
 
 ```verilog
-reg ped_req;                       // "somebody pressed, and we owe them a walk"
+reg walk_requested;                       // "somebody pressed, and we owe them a walk"
 
 always @(posedge clk) begin        // your ONE always block, the same one as the state machine
     if (!rst_n) begin
         ...
     end else begin
-        if (ped_button) ped_req <= 1'b1;    // catch the press whenever it arrives
+        if (button_pressed) walk_requested <= 1'b1;    // catch the press whenever it arrives
         // ... and clear it somewhere, once you've given them their walk
-        case (state)
+        case (current_light)
             ...
         endcase
     end
@@ -123,17 +123,17 @@ end
 ```
 
 Keep this inside the same `always` block as your state machine, not in a second one. If two
-`always` blocks both assign `ped_req`, the simulator picks one of them unpredictably, and
+`always` blocks both assign `walk_requested`, the simulator picks one of them unpredictably, and
 the synthesis tool that builds the chip rejects it outright.
 
-Now the state machine checks `ped_req`, which stays 1 until you clear it, instead of
-`ped_button`, which disappears after one tick.
+Now the state machine checks `walk_requested`, which stays 1 until you clear it, instead of
+`button_pressed`, which disappears after one tick.
 
 This is the main lesson of the project. Catching a brief event and holding onto it until
 you can deal with it comes up in almost every design you'll ever build. It's called
 **request latching**, and after this project you'll have done it once.
 
-The question left over is *where* to clear `ped_req`. That one is yours to figure out.
+The question left over is *where* to clear `walk_requested`. That one is yours to figure out.
 
 ---
 
@@ -149,7 +149,7 @@ Get a piece of paper and a pen.
 Then answer these four questions on the same page:
 
 1. **What makes GREEN go to YELLOW?** There are two separate reasons. Write both.
-2. **Where does `ped_req` get cleared?** Mark the spot.
+2. **Where does `walk_requested` get cleared?** Mark the spot.
 3. **Which state does reset go to?**
 4. **What is `walk` doing in each state?**
 

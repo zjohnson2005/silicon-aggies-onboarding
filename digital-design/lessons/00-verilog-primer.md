@@ -152,14 +152,14 @@ The rule is simple: `<=` inside `always @(posedge clk)`, every time.
 A `case` statement picks one branch based on a value:
 
 ```verilog
-case (state)
-    S_GREEN: begin
+case (current_light)
+    GREEN: begin
         // what to do while green
     end
-    S_YELLOW: begin
+    YELLOW: begin
         // what to do while yellow
     end
-    S_RED: begin
+    RED: begin
         // what to do while red
     end
     default: begin
@@ -180,8 +180,8 @@ stuck there forever. Point `default` back to a safe state.
 places:
 
 ```verilog
-localparam GREEN_TIME = 12;
-localparam S_GREEN    = 2'b00;
+localparam GREEN_TICKS = 12;
+localparam GREEN    = 2'b00;
 ```
 
 `2'b00` means "a 2-bit number, written in binary, with value 00." The format is width, then

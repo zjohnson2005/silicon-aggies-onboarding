@@ -12,10 +12,10 @@
 module tb_traffic_light;
 
     // ================ what the spec says the timing should be ================
-    localparam GREEN_TIME  = 12;
-    localparam YELLOW_TIME = 4;
-    localparam RED_TIME    = 10;
-    localparam MIN_GREEN   = 4;
+    localparam GREEN_TICKS  = 12;
+    localparam YELLOW_TICKS = 4;
+    localparam RED_TICKS    = 10;
+    localparam MIN_GREEN_TICKS   = 4;
 
     // ================ wires to the design under test ================
     reg        clk   = 0;
@@ -131,7 +131,7 @@ module tb_traffic_light;
         $display("  TIMEOUT: the light never reached a state the test was waiting for.");
         $display("  If you just copied the starter file, that is expected. Fill in the TODOs.");
         $display("  Otherwise, the last TEST line above is the one that got stuck. Open the");
-        $display("  waveform (make wave). If state or timer shows x, your reset doesn't set it.");
+        $display("  waveform (make wave). If current_light or ticks_in_light shows x, your reset doesn't set it.");
         $display("");
         $display("  %0d passed, %0d failed", passed, failed);
         $finish;
@@ -162,12 +162,12 @@ module tb_traffic_light;
         // ==== one clean cycle, nobody presses the button ====
         $display("TEST 2: one full cycle with no button press");
         wait_for_green_start;
-        repeat (GREEN_TIME + YELLOW_TIME + RED_TIME + 2) @(posedge clk);
+        repeat (GREEN_TICKS + YELLOW_TICKS + RED_TICKS + 2) @(posedge clk);
         $display("     measured: green=%0d  yellow=%0d  red=%0d ticks",
                  last_green, last_yellow, last_red);
-        check(last_green  == GREEN_TIME,  "green lasts 12 ticks");
-        check(last_yellow == YELLOW_TIME, "yellow lasts 4 ticks");
-        check(last_red    == RED_TIME,    "red lasts 10 ticks");
+        check(last_green  == GREEN_TICKS,  "green lasts 12 ticks");
+        check(last_yellow == YELLOW_TICKS, "yellow lasts 4 ticks");
+        check(last_red    == RED_TICKS,    "red lasts 10 ticks");
         $display("");
 
         // ==== button pressed in the middle of green ====
@@ -178,7 +178,7 @@ module tb_traffic_light;
         while (car_green === 1'b1) @(posedge clk);
         @(posedge clk); #1;
         $display("     measured: green lasted %0d ticks (should be less than 12)", last_green);
-        check(last_green < GREEN_TIME, "a mid-green press cuts green short");
+        check(last_green < GREEN_TICKS, "a mid-green press cuts green short");
         $display("");
 
         // ==== button pressed the instant green starts ====
@@ -188,9 +188,9 @@ module tb_traffic_light;
         while (car_green === 1'b1) @(posedge clk);
         @(posedge clk); #1;
         $display("     measured: green lasted %0d ticks (should be exactly %0d)",
-                 last_green, MIN_GREEN);
-        check(last_green >= MIN_GREEN, "cars always get at least 4 ticks of green");
-        check(last_green == MIN_GREEN,
+                 last_green, MIN_GREEN_TICKS);
+        check(last_green >= MIN_GREEN_TICKS, "cars always get at least 4 ticks of green");
+        check(last_green == MIN_GREEN_TICKS,
               "an early press is REMEMBERED and acted on once min-green is met");
         $display("");
 
@@ -199,9 +199,9 @@ module tb_traffic_light;
         while (car_red !== 1'b1) @(posedge clk);
         press_button;
         wait_for_green_start;
-        repeat (GREEN_TIME + 2) @(posedge clk);
+        repeat (GREEN_TICKS + 2) @(posedge clk);
         $display("     measured: the next green lasted %0d ticks (should be a full 12)", last_green);
-        check(last_green == GREEN_TIME, "a press during red does not shorten the next green");
+        check(last_green == GREEN_TICKS, "a press during red does not shorten the next green");
         $display("");
 
         // ==== button pressed during yellow ====
@@ -209,21 +209,21 @@ module tb_traffic_light;
         while (car_yellow !== 1'b1) @(posedge clk);
         press_button;
         wait_for_green_start;
-        repeat (GREEN_TIME + 2) @(posedge clk);
+        repeat (GREEN_TICKS + 2) @(posedge clk);
         $display("     measured: the next green lasted %0d ticks (should be a full 12)", last_green);
-        check(last_green == GREEN_TIME, "a press during yellow does not shorten the next green");
+        check(last_green == GREEN_TICKS, "a press during yellow does not shorten the next green");
         $display("");
 
         // ==== button pressed on the very last tick of red ====
         $display("TEST 7: button pressed on the last tick of red");
         while (car_red !== 1'b1) @(posedge clk);
-        repeat (RED_TIME - 2) @(posedge clk);   // the pulse lands on red's final tick
+        repeat (RED_TICKS - 2) @(posedge clk);   // the pulse lands on red's final tick
         press_button;
         while (car_green !== 1'b1) @(posedge clk);
         while (car_green === 1'b1) @(posedge clk);
         @(posedge clk); #1;
         $display("     measured: the next green lasted %0d ticks (should be a full 12)", last_green);
-        check(last_green == GREEN_TIME, "a press on the last tick of red does not carry into green");
+        check(last_green == GREEN_TICKS, "a press on the last tick of red does not carry into green");
         $display("");
 
         // ==== reset in the middle of a run ====
@@ -237,7 +237,7 @@ module tb_traffic_light;
         check(car_red === 1'b1, "a reset in the middle of a run goes straight to RED");
         wait_for_green_start;          // the red after the reset has now finished
         $display("     measured: red after the reset lasted %0d ticks (should be 10)", last_red);
-        check(last_red == RED_TIME, "after a reset, red lasts the full 10 ticks");
+        check(last_red == RED_TICKS, "after a reset, red lasts the full 10 ticks");
         $display("");
 
         // ==== the whole-run sanity rules ====

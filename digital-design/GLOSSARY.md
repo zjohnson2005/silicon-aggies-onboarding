@@ -36,7 +36,7 @@ it.
 **Latch (as a verb):** to catch a brief signal and hold on to it until you can act on it.
 It's what you do with the pedestrian button.
 
-**`localparam`:** a named constant, like `localparam GREEN_TIME = 12;`.
+**`localparam`:** a named constant, like `localparam GREEN_TICKS = 12;`.
 
 **One-hot:** a group of signals where exactly one is 1 at a time. Your three lights are
 one-hot.

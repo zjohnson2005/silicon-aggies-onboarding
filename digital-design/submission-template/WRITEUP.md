@@ -13,12 +13,12 @@ them, and what does each one turn on? Two or three sentences per state is plenty
 
 ## Handling the button press
 
-*The button is only high for one clock tick. Why can't you just check `ped_button` inside
+*The button is only high for one clock tick. Why can't you just check `button_pressed` inside
 the GREEN state? What did you do instead?*
 
 <your answer here>
 
-## What MIN_GREEN protects against
+## What MIN_GREEN_TICKS protects against
 
 *Why is it there? What would go wrong without it?*
 

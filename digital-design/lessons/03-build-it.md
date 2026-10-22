@@ -28,7 +28,7 @@ never two.
 
 **The pedestrian button** is a one-tick pulse on `ui_in[0]`, and it can come at any time:
 
-- Pressed during GREEN, at tick `MIN_GREEN` (4) or later: end green early and go to YELLOW.
+- Pressed during GREEN, at tick `MIN_GREEN_TICKS` (4) or later: end green early and go to YELLOW.
 - Pressed during GREEN before tick 4: **remember it**, and act on it as soon as tick 4
   arrives. Cars always get at least 4 ticks of green.
 - Pressed during YELLOW or RED: nothing happens, because a walk is already on its way.
@@ -64,32 +64,32 @@ Open `tt_um_traffic_light.v` in your submission folder. It already has the port 
 timing constants, the state names, and the registers. You fill in four TODOs.
 
 ```verilog
-    localparam GREEN_TIME  = 12;
-    localparam YELLOW_TIME = 4;
-    localparam RED_TIME    = 10;
-    localparam MIN_GREEN   = 4;
+    localparam GREEN_TICKS  = 12;
+    localparam YELLOW_TICKS = 4;
+    localparam RED_TICKS    = 10;
+    localparam MIN_GREEN_TICKS   = 4;
 
-    localparam S_GREEN  = 2'b00;
-    localparam S_YELLOW = 2'b01;
-    localparam S_RED    = 2'b10;
+    localparam GREEN  = 2'b00;
+    localparam YELLOW = 2'b01;
+    localparam RED    = 2'b10;
 
-    wire ped_button = ui_in[0];
+    wire button_pressed = ui_in[0];
 
-    reg [1:0] state;
-    reg [4:0] timer;
-    reg       ped_req;
+    reg [1:0] current_light;
+    reg [4:0] ticks_in_light;
+    reg       walk_requested;
 ```
 
-- **TODO 1: reset.** Set `state <= S_RED`, `timer <= 0`, and `ped_req <= 0`.
-- **TODO 2: remember the button press.** Set `ped_req` when the button pulses. Clear it
+- **TODO 1: reset.** Set `current_light <= RED`, `ticks_in_light <= 0`, and `walk_requested <= 0`.
+- **TODO 2: remember the button press.** Set `walk_requested` when the button pulses. Clear it
   while the light is RED.
-- **TODO 3: the state machine and the timer.** One `case` on `state`. On each tick, either
+- **TODO 3: the state machine and the timer.** One `case` on `current_light`. On each tick, either
   add one to the timer, or change state and set the timer to 0. Include a `default` that
   goes back to RED.
-- **TODO 4: the outputs.** Drive them from `state`.
+- **TODO 4: the outputs.** Drive them from `current_light`.
 
 TODOs 1 to 3 all go in **one** `always @(posedge clk)` block, and you use `<=` for every
-assignment in it. TODO 4 is the `assign` lines near the bottom of the file.
+assignment in it. TODO 4 is the four output lines (`car_red` through `walk_light`) near the bottom of the file.
 
 ---
 
@@ -101,7 +101,7 @@ result. This order works well.
 ### Round 1: turn on a light
 
 Do TODO 1 and TODO 4 only. Skip the state machine for now. Reset the state to RED, and
-drive the outputs from `state`.
+drive the outputs from `current_light`.
 
 ```bash
 make
@@ -115,9 +115,9 @@ turns on, which is real progress.
 
 Add TODO 3, but only the plain timing. Ignore the button for now:
 
-- GREEN goes to YELLOW when `timer == GREEN_TIME - 1`
-- YELLOW goes to RED when `timer == YELLOW_TIME - 1`
-- RED goes to GREEN when `timer == RED_TIME - 1`
+- GREEN goes to YELLOW when `ticks_in_light == GREEN_TICKS - 1`
+- YELLOW goes to RED when `ticks_in_light == YELLOW_TICKS - 1`
+- RED goes to GREEN when `ticks_in_light == RED_TICKS - 1`
 
 Run `make` again. TEST 2 should now pass, with 12, 4, and 10 ticks.
 
@@ -127,7 +127,7 @@ forgot to clear the timer on one of the transitions.
 ### Round 3: the button
 
 Add TODO 2. Then give GREEN a second way out. Green now goes to yellow when **either** the
-timer runs out, **or** `ped_req` is set and `timer >= MIN_GREEN - 1`.
+timer runs out, **or** `walk_requested` is set and `ticks_in_light >= MIN_GREEN_TICKS - 1`.
 
 Run `make`. TESTS 3 through 7 should pass. TESTS 5, 6, and 7 press the button during red,
 during yellow, and on the very last tick of red. All three check that the next green still
@@ -160,9 +160,9 @@ The test output tells you *what* is wrong. The waveform tells you *why*.
 make wave
 ```
 
-In GTKWave, click `tb_traffic_light`, then `dut`, and add `clk`, `rst_n`, `ui_in`, `state`,
-`timer`, and `uo_out`. Find the moment the test complained about, and look at what `state`
-and `timer` are doing right there. (On a Mac, see the [Surfer quick guide](../../setup/README.md#surfer-quick-guide-mac).)
+In GTKWave, click `tb_traffic_light`, then `dut`, and add `clk`, `rst_n`, `ui_in`, `current_light`,
+`ticks_in_light`, and `uo_out`. Find the moment the test complained about, and look at what `current_light`
+and `ticks_in_light` are doing right there. (On a Mac, see the [Surfer quick guide](../../setup/README.md#surfer-quick-guide-mac).)
 
 Most of the time, the bug is obvious within a few seconds once you're looking at the right
 tick.
@@ -174,7 +174,7 @@ tick.
 Once all fifteen checks pass, you still need `waveform.png`.
 
 In GTKWave, set up a view that shows at least one full green-yellow-red cycle and one
-pedestrian button press, with `state`, `timer`, and the light outputs visible. Make sure
+pedestrian button press, with `current_light`, `ticks_in_light`, and the light outputs visible. Make sure
 the signal names are readable. Take a screenshot and save it in your submission folder as
 `waveform.png`.
 
